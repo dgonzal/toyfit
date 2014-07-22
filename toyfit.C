@@ -1,6 +1,7 @@
 // c++ classes
 #include <iostream>
 #include <vector>
+#include <string>
 
 //RooFit
 #include "RooRealVar.h"
@@ -36,16 +37,19 @@ int main(){
   RooRealVar zero("zero","",0,0,150); 
 
   //Number of Events and particles per shower
-  unsigned int events = 1000;
-  unsigned int particles = 250; 
+  unsigned int events = 100;
+  unsigned int particles = 1000; 
 
   //input parameters for the distribution
-  double alpha_double = 1.836;
-  double beta_double = 0.209;
-  double lambda_double = 3.686;
-  double theta_double = 2.066;
-  RooRealVar fsig("fsig","signal fraction",0.75,0.,1.) ;
+  double alpha_double = 2.38;
+  double beta_double = 0.092;
+  double lambda_double = 2.21;
+  double theta_double = 1.12;
+  double c_frac = 0.3;
   //RooRealVar fsig("fsig","signal fraction",0.3) ;
+
+  TString epsname = "1000_1000.ps";
+
 
   double beta_gflash_factor = 1.49;
   double theta_gflash_factor = 16.42;
@@ -57,6 +61,7 @@ int main(){
   RooRealVar depth("depth","depth (cm)",0,0,150) ; 
   
   // --- Gamma pdf --- 
+  //if one of the Values is set to const you can not ask for it in RooFitModel, otherwise the program will crash
   RooRealVar alpha("alpha","alpha",alpha_double,0.,100.);
   alpha.removeMax(); // set infinite range
   RooRealVar beta("beta","beta",1./beta_double,0,100.) ;  
@@ -68,17 +73,20 @@ int main(){
   lambda.removeMax(); // set infinite range
   RooRealVar theta("theta","theta",1./theta_double,0.,100.) ;  
   theta.removeMax(); // set infinite range
-  RooRealVar nu("nu","nu",16.42); // no ranges means variable is fixed in fit
 
   RooGamma gamma_one("gamma_one","gamma_one pdf",depth,alpha,beta,mu) ; 
   RooGamma gamma_two("gamma_two","gamma_two pdf",depth,lambda,theta,mu) ; 
+
+  RooRealVar fsig("fsig","signal fraction",c_frac,0.29,.31);
+  //RooRealVar fsig("fsig","signal fraction",c_frac) ;
 
   RooAddPdf model("model","model",RooArgList(gamma_one,gamma_two),fsig) ;
   
 
   // Do the MonteCarlo study with RooMCStudy
+  //RooMCStudy* study_model = new RooMCStudy(model,depth,Silence(),FitOptions(Strategy(1),Save(kTRUE),Hesse(kFALSE)));//,Minimizer("Minut","migradimproved")
   RooMCStudy* study_model = new RooMCStudy(model,depth,Silence(),FitOptions(Save(kTRUE)));
-  study_model->generateAndFit(events,particles);
+  study_model->generateAndFit(events,particles,kTRUE);
 
 
   //generate data for one histogram
@@ -95,11 +103,11 @@ int main(){
 
   //prepare to plot pull histograms
   
-  RooPlot* pull_alpha = study_model->plotPull(alpha,Bins(20),FitGauss(kTRUE)) ;
-  RooPlot* pull_beta = study_model->plotPull(beta,Bins(40),FitGauss(kTRUE)) ;
-  RooPlot* pull_lambda = study_model->plotPull(lambda,Bins(40),FitGauss(kTRUE)) ;
-  RooPlot* pull_theta = study_model->plotPull(theta,Bins(40),FitGauss(kTRUE)) ;
-  RooPlot* pull_c = study_model->plotPull(fsig,Bins(40),FitGauss(kTRUE)) ;
+  RooPlot* pull_alpha = study_model->plotPull(alpha,FrameRange(-5,5),Bins(40),FitGauss(kTRUE)) ;
+  RooPlot* pull_beta = study_model->plotPull(beta,FrameRange(-5,5),Bins(40),FitGauss(kTRUE)) ;
+  RooPlot* pull_lambda = study_model->plotPull(lambda,FrameRange(-5,5),Bins(40),FitGauss(kTRUE)) ;
+  RooPlot* pull_theta = study_model->plotPull(theta,FrameRange(-5,5),Bins(40),FitGauss(kTRUE)) ;
+  RooPlot* pull_c = study_model->plotPull(fsig,FrameRange(-5,5),Bins(40),FitGauss(kTRUE)) ;
   
 
   //prepare to plot one fit 
@@ -149,61 +157,103 @@ int main(){
   legend->AddEntry(depthFrame->findObject("gamma_two"),"gamma two","L");
   legend->AddEntry(depthFrame->findObject("model")," gamma","L");
   
-  can->Print("test.ps[");
-
+  can->Print(epsname+"[");
+  
   //fill 2D-Histograms for the variables of the diagram and the correlation
   TString variables[] = {"fsig","alpha","beta","lambda","theta"};  
+  RooArgList RooVar(fsig,alpha,beta,lambda,theta);  
 
-	
-  //vector<TH2F *> correllation_hists;
-
-  for(unsigned int i =0; i< 4444; ++i){
+  for(unsigned int i =0; i< 4; ++i){
     for(unsigned int p =1+i; p < 5;++p){	
      double a_max = 50;
-     if(i==0) a_max = 1; 		 	
-     	
+     if(i==0) a_max = 1;
+    
+     double i_factor=1.;
+     double p_factor=1.;
+     if(i==2)
+       i_factor= beta_gflash_factor;
+     else if(i==4)
+       i_factor=theta_gflash_factor;
+
+     if(p==2)
+       p_factor= beta_gflash_factor;
+     else if(p==4)
+       p_factor=theta_gflash_factor;
+
      TH2F* corre_hist = new TH2F(variables[i]+variables[p],variables[i]+' '+variables[p],150,0,a_max,150,0,50);
-     TH2F* corre_hist_corVal = new TH2F(variables[i]+variables[p]+"_corVal",variables[i]+' '+variables[p],150,0,a_max,150,0,50);
+     TH2F* corre_hist_conv = new TH2F(variables[i]+variables[p]+"_conv",variables[i]+' '+variables[p]+" conv",250,0,a_max,250,0,50);
+     study_model->fitParDataSet().fillHistogram(corre_hist_conv,RooArgList(RooVar[i],RooVar[p]));
+     
      for(unsigned int m= 0; m <events; m++){
-       corre_hist->Fill(((RooRealVar*)study_model->fitResult(m)->floatParsFinal().find(variables[i]))->getVal(),((RooRealVar*)study_model->fitResult(m)->floatParsFinal().find(variables[p]))->getVal());
-       corre_hist_corVal->Fill(((RooRealVar*)study_model->fitResult(m)->floatParsFinal().find(variables[i]))->getVal(),((RooRealVar*)study_model->fitResult(m)->floatParsFinal().find(variables[p]))->getVal(),study_model->fitResult(m)->correlation(variables[i],variables[p]));
+       if(i==2 || i==4)
+	 corre_hist->Fill( i_factor/((RooRealVar*)study_model->fitResult(m)->floatParsFinal().find(variables[i]))->getVal(),((RooRealVar*)study_model->fitResult(m)->floatParsFinal().find(variables[p]))->getVal());
+       else if(p==2 || p==4)
+	 corre_hist->Fill(((RooRealVar*)study_model->fitResult(m)->floatParsFinal().find(variables[i]))->getVal(), p_factor/((RooRealVar*)study_model->fitResult(m)->floatParsFinal().find(variables[p]))->getVal());
+       else 
+	 corre_hist->Fill(((RooRealVar*)study_model->fitResult(m)->floatParsFinal().find(variables[i]))->getVal(),((RooRealVar*)study_model->fitResult(m)->floatParsFinal().find(variables[p]))->getVal());
      }
      corre_hist->Draw("box");
-     can->Print("test.ps");
-     corre_hist_corVal->Draw("colz");
-     can->Print("test.ps");
-     //correllation_hists.push_back(corre_hist);
+     can->Print(epsname);
+    
+     //corre_hist_conv->Draw("box");
+     //can->Print(epsname);
+
     } 
-  }	  
+  }
+  	  
+
+  
+  for(unsigned int m= 0; m <events; m++){
+    fsig.setVal(((RooRealVar*)study_model->fitResult(m)->floatParsFinal().find(variables[0]))->getVal());
+    alpha.setVal(((RooRealVar*)study_model->fitResult(m)->floatParsFinal().find(variables[1]))->getVal());
+    beta.setVal(((RooRealVar*)study_model->fitResult(m)->floatParsFinal().find(variables[2]))->getVal());
+    lambda.setVal(((RooRealVar*)study_model->fitResult(m)->floatParsFinal().find(variables[3]))->getVal());
+    theta.setVal(((RooRealVar*)study_model->fitResult(m)->floatParsFinal().find(variables[4]))->getVal());
+
+    RooPlot * fitFrame = depth.frame(mu.getVal(),150,100);
+    zero.plotOn(fitFrame,LineStyle(kDashed),LineColor(kBlack));
+    study_model->genData(m)->plotOn(fitFrame);
+    model.plotOn(fitFrame,Components(gamma_one),LineStyle(kDashed),LineColor(kGreen),Name("gamma_one"));
+    model.plotOn(fitFrame,Components(gamma_two),LineStyle(kDashed),LineColor(kRed),Name("gamma_two"));
+    model.plotOn(fitFrame,Name("model"));
+
+    fitFrame->Draw();
+    legend->Draw();
+    can->Print(epsname);
+  }
+
+
+
+  //cout<<study_model->fitParDataSet().size()<<"/"<<events<<endl;
 
   //pull distibrutions are drawn
   pull_alpha->Draw();
-  can->Print("test.ps");
+  can->Print(epsname);
 
   pull_beta->Draw();
-  can->Print("test.ps");
+  can->Print(epsname);
 
   pull_lambda->Draw();
-  can->Print("test.ps");
+  can->Print(epsname);
 
   pull_theta->Draw();
-  can->Print("test.ps");
+  can->Print(epsname);
 
   pull_c->Draw();
   
-  can->Print("test.ps");
+  can->Print(epsname);
 
 
   // one data sample and its fit is drawn
   depthFrame->Draw();
   legend->Draw();
-  can->Print("test.ps");
+  can->Print(epsname);
 
   //pullhistFrame->Draw();
   //onegammeFrame->Draw();
-  //can->Print("test.ps");
+  //can->Print(epsname);
 
-  can->Print("test.ps]");
+  can->Print(epsname+"]");
  
 
   return 0;
