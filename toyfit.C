@@ -37,8 +37,8 @@ int main(){
   RooRealVar zero("zero","",0,0,150); 
 
   //Number of Events and particles per shower
-  unsigned int events = 100;
-  unsigned int particles = 1000; 
+  unsigned int events = 10;
+  unsigned int particles = 10000; 
 
   //input parameters for the distribution
   double alpha_double = 2.38;
@@ -48,7 +48,7 @@ int main(){
   double c_frac = 0.3;
   //RooRealVar fsig("fsig","signal fraction",0.3) ;
 
-  TString epsname = "1000_1000.ps";
+  TString epsname = "10_1000_50bins.ps";
 
 
   double beta_gflash_factor = 1.49;
@@ -59,7 +59,8 @@ int main(){
   
   // --- Observable --- 
   RooRealVar depth("depth","depth (cm)",0,0,150) ; 
-  
+  depth.setBins(10);
+
   // --- Gamma pdf --- 
   //if one of the Values is set to const you can not ask for it in RooFitModel, otherwise the program will crash
   RooRealVar alpha("alpha","alpha",alpha_double,0.,100.);
@@ -77,7 +78,7 @@ int main(){
   RooGamma gamma_one("gamma_one","gamma_one pdf",depth,alpha,beta,mu) ; 
   RooGamma gamma_two("gamma_two","gamma_two pdf",depth,lambda,theta,mu) ; 
 
-  RooRealVar fsig("fsig","signal fraction",c_frac,0.29,.31);
+  RooRealVar fsig("fsig","signal fraction",c_frac,0.2,.8);
   //RooRealVar fsig("fsig","signal fraction",c_frac) ;
 
   RooAddPdf model("model","model",RooArgList(gamma_one,gamma_two),fsig) ;
@@ -165,30 +166,41 @@ int main(){
 
   for(unsigned int i =0; i< 4; ++i){
     for(unsigned int p =1+i; p < 5;++p){	
-     double a_max = 50;
+     double a_max = 18;
      if(i==0) a_max = 1;
     
-     double i_factor=1.;
-     double p_factor=1.;
+     double i_factor = 1.;
+     double p_factor = 1.;
+
      if(i==2)
-       i_factor= beta_gflash_factor;
+       i_factor = beta_gflash_factor;
      else if(i==4)
-       i_factor=theta_gflash_factor;
+       i_factor = theta_gflash_factor;
 
      if(p==2)
-       p_factor= beta_gflash_factor;
+       p_factor = beta_gflash_factor;
      else if(p==4)
-       p_factor=theta_gflash_factor;
+       p_factor = theta_gflash_factor;
 
-     TH2F* corre_hist = new TH2F(variables[i]+variables[p],variables[i]+' '+variables[p],150,0,a_max,150,0,50);
+     TH2F* corre_hist = new TH2F(variables[i]+variables[p],variables[i]+' '+variables[p],50,0,a_max,50,0,18);
      TH2F* corre_hist_conv = new TH2F(variables[i]+variables[p]+"_conv",variables[i]+' '+variables[p]+" conv",250,0,a_max,250,0,50);
      study_model->fitParDataSet().fillHistogram(corre_hist_conv,RooArgList(RooVar[i],RooVar[p]));
      
      for(unsigned int m= 0; m <events; m++){
-       if(i==2 || i==4)
-	 corre_hist->Fill( i_factor/((RooRealVar*)study_model->fitResult(m)->floatParsFinal().find(variables[i]))->getVal(),((RooRealVar*)study_model->fitResult(m)->floatParsFinal().find(variables[p]))->getVal());
-       else if(p==2 || p==4)
-	 corre_hist->Fill(((RooRealVar*)study_model->fitResult(m)->floatParsFinal().find(variables[i]))->getVal(), p_factor/((RooRealVar*)study_model->fitResult(m)->floatParsFinal().find(variables[p]))->getVal());
+       if(i==2 || i==4){
+	 if(p==2 || p==4){
+	   corre_hist->Fill(i_factor/((RooRealVar*)study_model->fitResult(m)->floatParsFinal().find(variables[i]))->getVal(), p_factor/((RooRealVar*)study_model->fitResult(m)->floatParsFinal().find(variables[p]))->getVal());
+	 }
+	 else
+	   corre_hist->Fill(i_factor/((RooRealVar*)study_model->fitResult(m)->floatParsFinal().find(variables[i]))->getVal(), ((RooRealVar*)study_model->fitResult(m)->floatParsFinal().find(variables[p]))->getVal());
+       }
+       else if(p==2 || p==4){
+	 if(i==2 || i==4){
+	   corre_hist->Fill(i_factor/((RooRealVar*)study_model->fitResult(m)->floatParsFinal().find(variables[i]))->getVal(), p_factor/((RooRealVar*)study_model->fitResult(m)->floatParsFinal().find(variables[p]))->getVal());
+	 }
+	 else
+	   corre_hist->Fill(((RooRealVar*)study_model->fitResult(m)->floatParsFinal().find(variables[i]))->getVal(), p_factor/((RooRealVar*)study_model->fitResult(m)->floatParsFinal().find(variables[p]))->getVal());
+       }
        else 
 	 corre_hist->Fill(((RooRealVar*)study_model->fitResult(m)->floatParsFinal().find(variables[i]))->getVal(),((RooRealVar*)study_model->fitResult(m)->floatParsFinal().find(variables[p]))->getVal());
      }
@@ -210,15 +222,38 @@ int main(){
     lambda.setVal(((RooRealVar*)study_model->fitResult(m)->floatParsFinal().find(variables[3]))->getVal());
     theta.setVal(((RooRealVar*)study_model->fitResult(m)->floatParsFinal().find(variables[4]))->getVal());
 
-    RooPlot * fitFrame = depth.frame(mu.getVal(),150,100);
+    RooPlot * fitFrame = depth.frame(mu.getVal(),50,100);
     zero.plotOn(fitFrame,LineStyle(kDashed),LineColor(kBlack));
     study_model->genData(m)->plotOn(fitFrame);
     model.plotOn(fitFrame,Components(gamma_one),LineStyle(kDashed),LineColor(kGreen),Name("gamma_one"));
     model.plotOn(fitFrame,Components(gamma_two),LineStyle(kDashed),LineColor(kRed),Name("gamma_two"));
     model.plotOn(fitFrame,Name("model"));
 
+
+    TString legend_string_c = "c: ";
+    legend_string_c += to_string(round(100*fsig.getVal())/100);
+    TString legend_string_a = " a: ";
+    legend_string_a += to_string(round(100*alpha.getVal())/100);
+    legend_string_a += " b: ";
+    legend_string_a += to_string(1/round(100*beta.getVal())*100*beta_gflash_factor);
+    TString legend_string_b = " l: ";
+    legend_string_b += to_string(round(100*lambda.getVal())/100);
+    legend_string_b += " t: ";
+    legend_string_b += to_string(1/round(100*theta.getVal())*100*theta_gflash_factor);
+
+    TLegend * tmp_leg = new TLegend(0.45,0.5,.9,0.9);
+    tmp_leg->SetTextFont(72);
+    tmp_leg->SetTextSize(0.04);
+    tmp_leg->SetFillColor(kWhite);
+    tmp_leg->AddEntry(fitFrame->findObject("gamma_one"),"gamma one","L");
+    tmp_leg->AddEntry(fitFrame->findObject("gamma_two"),"gamma two","L");
+    tmp_leg->AddEntry(fitFrame->findObject("model")," gamma","L");
+    tmp_leg->AddEntry((TObject*)0, legend_string_c, "");
+    tmp_leg->AddEntry((TObject*)0, legend_string_a, "");
+    tmp_leg->AddEntry((TObject*)0, legend_string_b, "");
+
     fitFrame->Draw();
-    legend->Draw();
+    tmp_leg->Draw();
     can->Print(epsname);
   }
 

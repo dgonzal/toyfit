@@ -1,0 +1,28 @@
+#include "hit_info.h"
+
+
+hit_info::hit_info(TString input_file){
+
+  TFile * input = TFile::Open( input_file ); 
+
+  TTree* theTree = (TTree*)input->Get("FitParametersTree");
+  theTree->SetBranchAddress("mytype",&mytype);
+  theTree->SetBranchAddress("myx",&myx);
+  theTree->SetBranchAddress("myy",&myy);
+  theTree->SetBranchAddress("myz",&myz);
+
+  theTree->SetBranchAddress("myenergy",&myenergy);
+  theTree->SetBranchAddress("energyGen",&energyGen);
+  theTree->SetBranchAddress("phiGen",&phiGen);
+  theTree->SetBranchAddress("etaGen",&etaGen);
+  theTree->SetBranchAddress("startingPoint",&startingPoint);
+  theTree->SetBranchAddress("interactPoint",&interactPoint);
+  theTree->SetBranchAddress("ePi0first_energy",&ePi0first_energy);
+  theTree->SetBranchAddress("ePi0tot_energy",&ePi0tot_energy);
+  //theTree->SetBranchAddress("",&);
+  //theTree->SetBranchAddress("",&);
+}
+
+hit_info::~hit_info(){
+
+}

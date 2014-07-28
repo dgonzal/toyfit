@@ -1,0 +1,43 @@
+#ifndef hit_info_h
+#define hit_info_h
+
+// c++ classes
+#include <iostream>
+#include <vector>
+#include <string>
+
+//ROOT 
+#include "TCanvas.h"
+#include "TGaxis.h"
+#include "TLegend.h"
+#include "TH2F.h"
+#include "TString.h"
+#include "TROOT.h"
+#include "TStyle.h"
+#include "TTree.h"
+#include "TFile.h"
+
+using namespace std;
+
+void set_style();
+class hit_info{
+public: 
+  hit_info(TString input_file);
+  ~hit_info();
+
+  std::vector<double> *mytype;
+  std::vector<double> *myx;
+  std::vector<double> *myy;
+  std::vector<double> *myz;
+  std::vector<double> *myenergy;
+  double energyGen;
+  double phiGen;
+  double etaGen;
+  double startingPoint;
+  double interactPoint;
+  double ePi0first_energy;
+  double ePi0tot_energy;
+
+};
+
+#endif
