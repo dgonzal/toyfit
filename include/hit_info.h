@@ -19,13 +19,30 @@
 
 using namespace std;
 
-//struct
+struct one_shower{
+  std::vector<double> mytype;
+  std::vector<double> myx;
+  std::vector<double> myy;
+  std::vector<double> myz;
+  std::vector<double> myenergy;
+  double energyGen;
+  double phiGen;
+  double etaGen;
+  double startingPoint;
+  double interactPoint;
+  double ePi0first_energy;
+  double ePi0tot_energy;
+};
 
 class hit_info{
 public: 
   hit_info(TString input_file);
   ~hit_info();
+  
+  vector<one_shower> all_shower;
 
+ 
+  /*
   std::vector<double>* mytype = 0;
   std::vector<double>* myx = 0;
   std::vector<double>* myy = 0;
@@ -42,6 +59,6 @@ public:
   TFile * input;
   TTree * theTree;
   bool GetEntry(int i){ return theTree->GetEntry(i)>0 ? true: false;}
-
+  */
 };
 #endif
