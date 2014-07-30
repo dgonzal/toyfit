@@ -57,19 +57,13 @@ int main(){
   double c_frac = 0.3;
   //RooRealVar fsig("fsig","signal fraction",0.3) ;
 
-  TString epsname = "test.ps";
+  TString epsname = "test2.ps";
 
   
-  //hit_info multi_shower("fullsim/example_pi20Gev.root");
-  hit_info multi_shower("fullsim/example_ele_20GeV.root");
+  hit_info multi_shower("fullsim/example_pi20Gev.root");
+  //hit_info multi_shower("fullsim/example_ele_20GeV.root");
   
-  /*
-  for(unsigned int i = 0; i<10; ++i){
-      cout<<multi_shower.all_shower.at(0).myx.at(i)<< " " <<multi_shower.all_shower.at(0).myy.at(i)<< " " <<multi_shower.all_shower.at(0).myz.at(i) <<" "<<multi_shower.all_shower.at(1).myx.at(i)<< " " <<multi_shower.all_shower.at(1).myy.at(i)<< " " <<multi_shower.all_shower.at(1).myz.at(i) <<endl;
-  }
-  */
-  //pion20_hits shower;
-
+ 
   double beta_gflash_factor = 1.49;
   double theta_gflash_factor = 16.42;
 
@@ -77,23 +71,23 @@ int main(){
   theta_double = theta_double/theta_gflash_factor;
   
   // --- Observable --- 
-  RooRealVar depth("depth","depth [cm]",0,0,300); 
+  RooRealVar depth("depth","depth",0,0,180); 
   
   // --- Weight ---
   RooRealVar* weight = new RooRealVar("weight","1/E dE/dr", 0.0, 1.0);
  
   // --- Gamma pdf --- 
   //if one of the Values is set to const you can not ask for it in RooFitModel, otherwise the program will crash
-  RooRealVar alpha("alpha","alpha",alpha_double,0.,100.);
+  RooRealVar alpha("alpha","alpha",alpha_double,0.001,10.);
   alpha.removeMax(); // set infinite range
-  RooRealVar beta("beta","beta",1./beta_double,0,100.) ;  
+  RooRealVar beta("beta","beta",1./beta_double,0.001,100.) ;  
   beta.removeMax(); // set infinite range
-  //RooRealVar mu("mu","mu",1.49); // no ranges means variable is fixed in fit
-  RooRealVar mu("mu","mu",0); // no ranges means variable is fixed in fit
 
-  RooRealVar lambda("lambda","lambda",lambda_double,0.,100.);
+  RooRealVar mu("mu","mu",0); // no ranges means variable is fixed in fit
+  
+  RooRealVar lambda("lambda","lambda",lambda_double,0.001,10.);
   lambda.removeMax(); // set infinite range
-  RooRealVar theta("theta","theta",1./theta_double,0.,100.) ;  
+  RooRealVar theta("theta","theta",1./theta_double,0.001,100.) ;  
   theta.removeMax(); // set infinite range
 
   RooGamma gamma_one("gamma_one","gamma_one pdf",depth,alpha,beta,mu) ; 
@@ -115,13 +109,8 @@ int main(){
   
   can->Print(epsname+"[");
 
-  //shower.GetEntry(0);
   
-  //cout<<shower.mytype->size()<<" "<<shower.myx->size()<<" "<<shower.myy->size()<<" "<<shower.energyGen<<endl;
-  //cout<<inv_energy<endl;
-  //cout<<shower.energyGen<<endl;
-  
-  for(unsigned int p = 0; p<100 ; ++p){
+  for(unsigned int p = 0; p<10 ; ++p){
 
     TLegend * legend = new TLegend(0.55,0.65,.9,0.9);
     legend->SetTextFont(72);
@@ -129,61 +118,59 @@ int main(){
     legend->SetFillColor(kWhite);
 
     one_shower shower =  multi_shower.all_shower.at(p); 
-    double inv_energy = 1/shower.energyGen;
+   
+
+    RooGamma gamma_hadr("gamma_hadr","gamma hadr pdf",depth,alpha_hadr,beta_hadr,mu) ; 
+    RooGamma gamma_pion("gamma_pion","gamma pion pdf",depth,alpha_pion,beta_pion,mu) ; 
     
     //DataSet I am looking at
     RooDataSet full_sim_data("full_sim_data","full_sim_data",RooArgSet(depth,weight),"weight");
+    RooDataSet full_sim_hadr("full_sim_hadr","full_sim_hadr",RooArgSet(depth,weight),"weight");
+    RooDataSet full_sim_pion("full_sim_pion","full_sim_pion",RooArgSet(depth,weight),"weight");
+
+    double sumHCAL=0;
+
+    for(unsigned int i = 0; i < shower.mytype.size(); ++i){	
+      sumHCAL += shower.myenergy.at(i);
+    }
 
     for(unsigned int i = 0; i < shower.mytype.size(); ++i){	
 	double x_val = shower.myx.at(i);
 	double y_val = shower.myy.at(i);
 	double z_val = shower.myz.at(i);
-	if(z_val>1750){
-	  double dE = shower.energyGen-shower.myenergy.at(i);
-	  //z_val-=1750;
-	  depth.setVal(sqrt(x_val*x_val+y_val*y_val+z_val*z_val)/10);
-	  double dr = depth.getVal(); 	 
-	  //cout<< x_val<< " "<<y_val << " "<<z_val <<" "<<depth.getVal()<<endl;
-	  //cout<<shower.myenergy.at(i)<<endl;
-	  full_sim_data.add(depth,1/shower.myenergy.at(i),0);
-	  //cout<<full_sim_data.isWeighted()<<endl;
-	}
-      }
+
+	z_val = z_val -shower.interactPoint;
+	depth.setVal(sqrt(x_val*x_val+y_val*y_val+z_val*z_val)/10);
+	full_sim_data.add(depth,shower.myenergy.at(i)/sumHCAL,0);
+    }
 	  
-    //RooDataSet * data = gamma_one.generate(depth,1000);
-    //fsig.setVal(0.);
-    //model.fitTo(*toydata);
+
     model.fitTo(full_sim_data);
-
-    //gamma_two.fitTo(*toydata);  
+      
     
-    //prepare to plot one fit 
+    //prepare to plot fits
     
-    RooPlot * onegammeFrame = depth.frame(mu.getVal(),150,100);
-    toydata->plotOn(onegammeFrame);
-    //gamma_two.plotOn(onegammeFrame);
-  
-
-    RooPlot * depthFrame = depth.frame(150,depth.getMax(),100);
-    depthFrame->SetYTitle("1/E");
+    RooPlot * depthFrame = depth.frame(0,depth.getMax(),100);
+    depthFrame->SetTitle("Global Fit");
+    depthFrame->SetTitleOffset(1.2,"Y");
+    depthFrame->SetLabelSize(0.02,"Y");
+    depthFrame->SetYTitle("");
     zero.plotOn(depthFrame,LineStyle(kDashed),LineColor(kBlack));
-    //toydata->plotOn(depthFrame);
     full_sim_data.plotOn(depthFrame);
     model.plotOn(depthFrame,Components(gamma_one),LineStyle(kDashed),LineColor(kGreen),Name("gamma_one"));
     model.plotOn(depthFrame,Components(gamma_two),LineStyle(kDashed),LineColor(kRed),Name("gamma_two"));
     model.plotOn(depthFrame,Name("model"));
-  
     
     stringstream gamma_one_text;
-    gamma_one_text.precision(4);
+    gamma_one_text.precision(3);
     gamma_one_text << "#Gamma_{1} ("<<alpha.getVal()<<","<<(1/beta.getVal()*beta_gflash_factor)<<")"<<endl;
     stringstream gamma_two_text; 
-    gamma_two_text.precision(4);
+    gamma_two_text.precision(3);
     gamma_two_text << "#Gamma_{2} (" <<lambda.getVal()<<","<<(1/theta.getVal()*theta_gflash_factor)<< ")"<<endl;
     
     stringstream gamma_text; 
     gamma_text.precision(3);
-    gamma_text << "#Gamma_{1/2} c = " <<fsig.getVal()<<endl;
+    gamma_text << "#Gamma_{1/2} c = " <<fsig.getVal() <<endl;
     
     legend->AddEntry(depthFrame->findObject("gamma_one"),gamma_one_text.str().c_str(),"L");
     legend->AddEntry(depthFrame->findObject("gamma_two"),gamma_two_text.str().c_str(),"L");
@@ -192,22 +179,7 @@ int main(){
     cout << alpha.getVal() << " " << 1/beta.getVal()*beta_gflash_factor << std::endl;
     cout << lambda.getVal() << " " << 1/theta.getVal()*theta_gflash_factor << std::endl;
     cout << fsig.getVal() << " "<<depthFrame->chiSquare()<< std::endl;
-
-    /*
-      RooHist* hpull = depthFrame->pullHist();
-      hpull->SetLineColor(0);
-      hpull->SetMarkerColor(kRed);
-      hpull->SetMarkerStyle(21);
-      
-      depthFrame->addPlotable(hpull);
-      depthFrame->SetMinimum(-5);
-      
-
-      RooPlot * pullhistFrame = depth.frame(Title("Pull Distribution"));
-      pullhistFrame->addPlotable(hpull);
-      pullhistFrame->SetMaximum(5);
-      pullhistFrame->SetMinimum(-5);
-    */
+    cout <<shower.startingPoint<<endl;
     
     //prepare to dump all the plots in the ps file
     
@@ -215,6 +187,7 @@ int main(){
     // one data sample and its fit is drawn
     depthFrame->Draw();
     legend->Draw();
+  
     can->Print(epsname);
   }
   
