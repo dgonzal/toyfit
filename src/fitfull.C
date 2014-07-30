@@ -97,10 +97,7 @@ int main(){
   //RooRealVar fsig("fsig","signal fraction",c_frac) ;
 
   RooAddPdf model("model","model",RooArgList(gamma_one,gamma_two),fsig) ;
-  
-  //generate data for one histogram
-  RooDataSet * toydata = model.generate(depth,particles);
-  
+   
   
   TCanvas * can = new TCanvas("can", "can", 600, 600); 
   can->cd();
@@ -118,15 +115,11 @@ int main(){
     legend->SetFillColor(kWhite);
 
     one_shower shower =  multi_shower.all_shower.at(p); 
-   
-
-    RooGamma gamma_hadr("gamma_hadr","gamma hadr pdf",depth,alpha_hadr,beta_hadr,mu) ; 
-    RooGamma gamma_pion("gamma_pion","gamma pion pdf",depth,alpha_pion,beta_pion,mu) ; 
+  
     
     //DataSet I am looking at
     RooDataSet full_sim_data("full_sim_data","full_sim_data",RooArgSet(depth,weight),"weight");
-    RooDataSet full_sim_hadr("full_sim_hadr","full_sim_hadr",RooArgSet(depth,weight),"weight");
-    RooDataSet full_sim_pion("full_sim_pion","full_sim_pion",RooArgSet(depth,weight),"weight");
+   
 
     double sumHCAL=0;
 
@@ -140,7 +133,7 @@ int main(){
 	double z_val = shower.myz.at(i);
 
 	z_val = z_val -shower.interactPoint;
-	depth.setVal(sqrt(x_val*x_val+y_val*y_val+z_val*z_val)/10);
+	depth.setVal(sqrt(x_val*x_val+y_val*y_val+z_val*z_val)/10*1.642);
 	full_sim_data.add(depth,shower.myenergy.at(i)/sumHCAL,0);
     }
 	  
