@@ -30,7 +30,9 @@ hit_info::hit_info(TString input_file){
   
   for(unsigned int i =0; i<theTree->GetEntries(); ++i){
     theTree->GetEntry(i);
-  
+
+    //cout<<help_oneShower.interactPoint<<endl;
+
     for(unsigned int p = 0; p<mytype->size(); ++p){
       help_oneShower.mytype.push_back(mytype->at(p)); 
       help_oneShower.myenergy.push_back(myenergy->at(p)); 
