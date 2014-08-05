@@ -4,7 +4,7 @@
 #include <string>
 #include <stdio.h>  
 #include <sstream>
-
+#include <cmath>
 
 //RooFit
 #include "RooRealVar.h"
@@ -75,20 +75,20 @@ int main(){
   // --- Gamma pdf --- 
   //if one of the Values is set to const you can not ask for it in RooFitModel, otherwise the program will crash
   //RooRealVar alpha("alpha","alpha",alpha_double,0.0,4);
-  RooRealVar alpha("alpha","alpha",0.0,5.);
+  RooRealVar alpha("alpha","alpha",0.0,20.);
   //alpha.removeMax(); // set infinite range
   //RooRealVar beta("beta","beta",1./beta_double,0.0,100.);
-  RooRealVar beta("beta","beta",5.0,10);
+  RooRealVar beta("beta","beta",0.1,.1,3.5);
   //beta.removeMax(); // set infinite range
 
   RooRealVar mu("mu","mu",0); // no ranges means variable is fixed in fit
   RooRealVar nu("nu","nu",0); // no ranges means variable is fixed in fit
   
   //RooRealVar lambda("lambda","lambda",lambda_double,0.0,6.);
-  RooRealVar lambda("lambda","lambda",0.0,7.);
+  RooRealVar lambda("lambda","lambda",0.0,40.);
   //lambda.removeMax(); // set infinite range
   //RooRealVar theta("theta","theta",1./theta_double,0.0,100.) ;  
-  RooRealVar theta("theta","theta",.9,20) ;  
+  RooRealVar theta("theta","theta",1.,47) ;  
   //theta.removeMax(); // set infinite range
 
   RooGamma gamma_one("gamma_one","gamma_one pdf",depth,alpha,beta,mu) ; 
@@ -102,6 +102,13 @@ int main(){
   RooDataSet mean("mean","mean",RooArgSet(depth,weight),"weight"); 
   TH1F* mean_fithist = new TH1F("mean_fithist"," mean fit hist",50,0,150);
 
+
+  TH1F* log_alpha1 = new TH1F("log_alpha1"," log(#alpha_{1})",20,-1,3);
+  TH1F* log_beta1  = new TH1F("log_beta1"," log(#beta_{1})",20,-1,3);
+  TH2F* log_corr1  = new TH2F("log_corr1"," correlation #alpha_{1} #beta_{1}",20,-1,3,20,-1,3);
+  TH1F* log_alpha2 = new TH1F("log_alpha2"," log(#alpha_{2})",20,-1,3);
+  TH1F* log_beta2  = new TH1F("log_beta2"," log(#beta_{2})",20,-1,3);
+  TH2F* log_corr2  = new TH2F("log_corr2"," correlation #alpha_{2} #beta_{2}",20,-1,3,20,-1,3);
 
   TH2F* mean_hist = new TH2F("mean_hist"," mean hist",100,0,150,100.,0.,.0015);
   
@@ -150,7 +157,8 @@ int main(){
     
     c_tot += shower.ePi0first_energy/n_part;
     fsig.setVal(shower.ePi0first_energy);
-    fsig.setRange(shower.ePi0first_energy-0.1 > 0 ? shower.ePi0first_energy-0.1: 0,shower.ePi0first_energy+0.1<1?shower.ePi0first_energy+0.1:1);
+    fsig.setRange(shower.ePi0first_energy-0.05 > 0 ? shower.ePi0first_energy-0.05: 0,shower.ePi0first_energy+0.05<1?shower.ePi0first_energy+0.05:1);
+    //fsig.setRange(1-shower.ePi0first_energy-0.05 > 0 ? 1-shower.ePi0first_energy-0.05: 0,1-shower.ePi0first_energy+0.05<1 ? 1-shower.ePi0first_energy+0.05:1);
 
     for(unsigned int i = 0; i < shower.mytype.size(); ++i){	
       double x_val = shower.myx.at(i);
@@ -190,11 +198,11 @@ int main(){
     //full_sim_data.plotOn(depthFrame);
     roodatahist.plotOn(depthFrame);
     //full_sim_binned->plotOn(depthFrame);
-    
+    /*
     model.plotOn(depthFrame,Components(gamma_one),LineStyle(kDashed),LineColor(kGreen),Name("gamma_one"));
     model.plotOn(depthFrame,Components(gamma_two),LineStyle(kDashed),LineColor(kRed),Name("gamma_two"));
     model.plotOn(depthFrame,Name("model"));
-    
+    */
     stringstream gamma_one_text;
     gamma_one_text.precision(3);
     gamma_one_text << "#Gamma_{1} ("<<alpha.getVal()<<","<<(1/beta.getVal()*beta_gflash_factor)<<")"<<endl;
@@ -220,6 +228,25 @@ int main(){
     cout <<"starting , interacting Points "<<shower.startingPoint<<" "<<shower.interactPoint <<endl;
     cout<< "pi0first, pi0tot "<<shower.ePi0first_energy <<" "<<shower.ePi0tot_energy<<endl;
     
+    /*
+    log_alpha1->Fill(log10(alpha.getVal()));
+    log_alpha2->Fill(log10(lambda.getVal()));
+    //cout<<log(1/beta.getVal()*beta_gflash_factor)<<endl;
+    log_beta1 ->Fill(log10(1/beta.getVal()*beta_gflash_factor));
+    log_beta2 ->Fill(log10(1/theta.getVal()*theta_gflash_factor));
+    log_corr1 ->Fill(log10(alpha.getVal()),log10(1/beta.getVal()*beta_gflash_factor));
+    log_corr2 ->Fill(log10(lambda.getVal()),log10(1/theta.getVal()*theta_gflash_factor));
+    */
+    
+    if(fsig.getVal()>0.1)log_alpha1->Fill(log(alpha.getVal()));
+    if(fsig.getVal()<0.9)log_alpha2->Fill(log(lambda.getVal()));
+    //cout<<log(1/beta.getVal()*beta_gflash_factor)<<endl;
+    if(fsig.getVal()>0.1)log_beta1 ->Fill(log(1/beta.getVal()*beta_gflash_factor));
+    if(fsig.getVal()<0.9)log_beta2 ->Fill(log(1/theta.getVal()*theta_gflash_factor));
+    if(fsig.getVal()>0.1)log_corr1 ->Fill(log(alpha.getVal()),log(1/beta.getVal()*beta_gflash_factor));
+    if(fsig.getVal()<0.9)log_corr2 ->Fill(log(lambda.getVal()),log(1/theta.getVal()*theta_gflash_factor));
+    
+
     //prepare to dump all the plots in the ps file
     
     
@@ -236,7 +263,7 @@ int main(){
     */
     //if(depthFrame->chiSquare()>5) continue;
     depthFrame->Draw("HIST p");
-    legend->Draw();
+    //legend->Draw();
   
     can->Print(epsname);
   }
@@ -245,8 +272,16 @@ int main(){
 
 
   fsig.setVal(c_tot);
+  alpha.removeMax(); // set infinite range
+  beta.removeMax(); // set infinite range
+  lambda.removeMax(); // set infinite range
+  theta.removeMax(); // set infinite range
 
-  model.fitTo(roomeandatahist);
+  //model.fitTo(roomeandatahist);
+  //model.fitTo(mean,SumW2Error(kTRUE));
+
+
+
 
   TLegend * mean_legend = new TLegend(0.5,0.65,.9,0.9);
   mean_legend->SetTextFont(72);
@@ -278,24 +313,41 @@ int main(){
   model.plotOn(meanFrame,Components(gamma_two),LineStyle(kDashed),LineColor(kRed),Name("gamma_two"));
   model.plotOn(meanFrame,Name("model"));
   //mean.plotOn(meanFrame);
-  roomeandatahist.plotOn(meanFrame);
+  //roomeandatahist.plotOn(meanFrame);
 
   mean_legend->AddEntry(meanFrame->findObject("gamma_one"),mean_gamma_one_text.str().c_str(),"L");
   mean_legend->AddEntry(meanFrame->findObject("gamma_two"),mean_gamma_two_text.str().c_str(),"L");
   mean_legend->AddEntry(meanFrame->findObject("model"),mean_gamma_text.str().c_str(),"L");
-  /*
+  
   meanFrame->Draw();
   mean_legend->Draw();
   //datahisto->Draw();
+  //can->Print(epsname);
+
+  //mean_hist->Draw("box");
+  //can->Print(epsname);
+ 
+
+  can->Print(epsname);
+  log_alpha1->Draw();
+  can->Print(epsname);
+  log_beta1->Draw();
+  can->Print(epsname);
+  log_corr1->Draw("colz");
+  can->Print(epsname);
+  log_alpha2->Draw();
+  can->Print(epsname);
+  log_beta2->Draw();
+  can->Print(epsname);
+  log_corr2->Draw("colz");
   can->Print(epsname);
 
-  mean_hist->Draw("box");
-  can->Print(epsname);
-  */
 
 
   can->Print(epsname+"]");
  
+
+  cout<<log(.347)<<endl;
 
   return 0;
 }
