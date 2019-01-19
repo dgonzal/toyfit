@@ -31,6 +31,7 @@
 #include "TTree.h"
 #include "TFile.h"
 #include "TH1F.h"
+#include "TMath.h"
 
 //MyCLasses
 #include "hit_info.h"
@@ -53,7 +54,7 @@ int main(){
   double c_frac = 0.5;
   //RooRealVar fsig("fsig","signal fraction",0.3) ;
 
-  TString epsname = "test2.ps";
+  string epsname = "plots/gamma_pion20";
 
   
   hit_info multi_shower("fullsim/example_pi20Gev.root");
@@ -112,12 +113,12 @@ int main(){
 
   TH2F* mean_hist = new TH2F("mean_hist"," mean hist",100,0,150,100.,0.,.0015);
   
-  TCanvas * can = new TCanvas("can", "can", 600, 600); 
+  TCanvas * can = new TCanvas("can", "can", 600, 500); 
   can->cd();
   set_style();
   
   
-  can->Print(epsname+"[");
+  //can->Print(epsname+"[");
 
   double c_tot =0;
 
@@ -135,7 +136,7 @@ int main(){
    
     //DataSet I am looking at
     RooDataSet full_sim_data("full_sim_data","full_sim_data",RooArgSet(depth,weight),"weight");
-    TH1F* datahisto = new TH1F("datahist","datahist",50,0,150);
+    TH1F* datahisto = new TH1F("datahist","datahist",15,0,120);
 
     double sumHCAL=0;
 
@@ -167,7 +168,6 @@ int main(){
 
       // if(shower.mytype.at(i) !=2)continue;
      
-
       z_val = z_val - shower.interactPoint; 
       //if(z_val<=0) continue;
       depth.setVal(sqrt(x_val*x_val+y_val*y_val+z_val*z_val)/10);
@@ -183,14 +183,14 @@ int main(){
 
     RooDataHist roodatahist("roodatahist","roodatahist",depth,Import(*datahisto)) ;
 
-    model.fitTo(roodatahist, Strategy(2) );
-    //model.fitTo(full_sim_data);
+    //model.fitTo(roodatahist, Strategy(2) );
+    model.fitTo(full_sim_data);
       
     RooDataHist* full_sim_binned = full_sim_data.binnedClone("full_sim_binned","full sim binned");
     //prepare to plot fits
     
     RooPlot * depthFrame = depth.frame(0,120,100);
-    depthFrame->SetTitle("Global Fit");
+    depthFrame->SetTitle("");
     depthFrame->SetTitleOffset(1.2,"Y");
     depthFrame->SetLabelSize(0.02,"Y");
     depthFrame->SetYTitle("1/E dE/dr");
@@ -198,11 +198,11 @@ int main(){
     //full_sim_data.plotOn(depthFrame);
     roodatahist.plotOn(depthFrame);
     //full_sim_binned->plotOn(depthFrame);
-    /*
+    
     model.plotOn(depthFrame,Components(gamma_one),LineStyle(kDashed),LineColor(kGreen),Name("gamma_one"));
     model.plotOn(depthFrame,Components(gamma_two),LineStyle(kDashed),LineColor(kRed),Name("gamma_two"));
     model.plotOn(depthFrame,Name("model"));
-    */
+    
     stringstream gamma_one_text;
     gamma_one_text.precision(3);
     gamma_one_text << "#Gamma_{1} ("<<alpha.getVal()<<","<<(1/beta.getVal()*beta_gflash_factor)<<")"<<endl;
@@ -216,7 +216,7 @@ int main(){
     
     stringstream  chi2; 
     chi2.precision(2);
-    chi2 << "#chi^{2} = " <<depthFrame->chiSquare() <<endl;
+    chi2 << "#chi^{2} prob. = " << TMath::Prob(depthFrame->chiSquare(),14) <<endl;
 
     legend->AddEntry(depthFrame->findObject("gamma_one"),gamma_one_text.str().c_str(),"L");
     legend->AddEntry(depthFrame->findObject("gamma_two"),gamma_two_text.str().c_str(),"L");
@@ -263,9 +263,13 @@ int main(){
     */
     //if(depthFrame->chiSquare()>5) continue;
     depthFrame->Draw("HIST p");
-    //legend->Draw();
-  
-    can->Print(epsname);
+    legend->Draw();
+
+    stringstream  particle_number; 
+    particle_number.precision(1);
+    particle_number << p <<endl;
+    
+    can->Print((epsname+"_"+particle_number.str()+".pdf").c_str());
   }
 
   RooDataHist roomeandatahist("roomeandatahist","roomeandatahist",depth,Import(*mean_fithist)) ;
@@ -280,15 +284,11 @@ int main(){
   //model.fitTo(roomeandatahist);
   //model.fitTo(mean,SumW2Error(kTRUE));
 
-
-
-
   TLegend * mean_legend = new TLegend(0.5,0.65,.9,0.9);
   mean_legend->SetTextFont(72);
   mean_legend->SetTextSize(0.04);
   mean_legend->SetFillColor(kWhite);
   mean_legend->SetBorderSize(0);
-
 
   stringstream  mean_gamma_one_text;
   mean_gamma_one_text.precision(3);
@@ -327,28 +327,21 @@ int main(){
   //mean_hist->Draw("box");
   //can->Print(epsname);
  
-
-  can->Print(epsname);
+  can->Print((epsname+"_mean.pdf").c_str());
   log_alpha1->Draw();
-  can->Print(epsname);
+  can->Print((epsname+"_alpha1_log.pdf").c_str());
   log_beta1->Draw();
-  can->Print(epsname);
+  can->Print((epsname+"_beta1_log.pdf").c_str());
   log_corr1->Draw("colz");
-  can->Print(epsname);
+  can->Print((epsname+"corr1_log.pdf").c_str());
   log_alpha2->Draw();
-  can->Print(epsname);
+  can->Print((epsname+"apha2_log.pdf").c_str());
   log_beta2->Draw();
-  can->Print(epsname);
+  can->Print((epsname+"beta2_log.pdf").c_str());
   log_corr2->Draw("colz");
-  can->Print(epsname);
+  can->Print((epsname+"corr2_log.pdf").c_str());
 
-
-
-  can->Print(epsname+"]");
- 
-
-  cout<<log(.347)<<endl;
-
+  ///can->Print(epsname+"]");
   return 0;
 }
 
